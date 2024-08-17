@@ -1,12 +1,12 @@
-import React from 'react';
-import FilterItem from './FilterItem';
-import RangeOrExactFilter from './RangeOrExactFilter';
+import React from "react";
+import FilterItem from "./FilterItem";
+import RangeOrExactFilter from "./RangeOrExactFilter";
 
 function Filters({ availableFilters, selectedFilters, updateSelectedFilters }) {
   return (
     <div>
-      {availableFilters.map((filter) => (
-        filter.name === 'aspect_ratio' || filter.name === 'file_size' ? (
+      {availableFilters.map((filter) =>
+        filter.name === "aspect_ratio" || filter.name === "file_size" ? (
           <RangeOrExactFilter
             key={filter.name}
             filterName={filter.name}
@@ -21,8 +21,8 @@ function Filters({ availableFilters, selectedFilters, updateSelectedFilters }) {
             selectedValues={selectedFilters[filter.name]}
             updateSelectedFilters={updateSelectedFilters}
           />
-        )
-      ))}
+        ),
+      )}
     </div>
   );
 }

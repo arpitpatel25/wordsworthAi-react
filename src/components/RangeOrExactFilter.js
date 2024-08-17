@@ -64,90 +64,96 @@
 
 // export default RangeOrExactFilter;
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
-function RangeOrExactFilter({ filterName, filterValues, updateSelectedFilters }) {
-  const [mode, setMode] = useState('range'); // 'range' or 'exact'
+function RangeOrExactFilter({
+  filterName,
+  filterValues,
+  updateSelectedFilters,
+}) {
+  const [mode, setMode] = useState("range"); // 'range' or 'exact'
   const [isEnabled, setIsEnabled] = useState(false);
 
   const handleInputChange = (e, fieldName) => {
     const { value } = e.target;
-    const floatValue = parseFloat(value);
-    const min = filterValues[0];
-    const max = filterValues[1];
-
-    if (floatValue < min || floatValue > max) {
-      alert(`Value must be between ${min} and ${max}`);
-    } else {
-      updateSelectedFilters(fieldName, floatValue);
-    }
+    updateSelectedFilters(fieldName, parseFloat(value));
   };
 
   const toggleEnable = () => {
     setIsEnabled(!isEnabled);
     if (!isEnabled) {
-      updateSelectedFilters(filterName, null); // Clear filter values when disabling
+      // Clear all related filter values when disabling
+      updateSelectedFilters(`${filterName}_gte`, null);
+      updateSelectedFilters(`${filterName}_lte`, null);
+      updateSelectedFilters(`${filterName}_eq`, null);
+    }
+  };
+
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    // Clear values of the other mode when switching
+    if (newMode === "range") {
+      updateSelectedFilters(`${filterName}_eq`, null);
+    } else {
+      updateSelectedFilters(`${filterName}_gte`, null);
+      updateSelectedFilters(`${filterName}_lte`, null);
     }
   };
 
   return (
     <div>
-      <h3>{filterName.replace(/_/g, ' ').toUpperCase()}</h3>
-      <button 
+      <h3>{filterName.replace(/_/g, " ").toUpperCase()}</h3>
+      <button
         onClick={toggleEnable}
         style={{
-          backgroundColor: isEnabled ? 'lightblue' : 'white',
-          padding: '5px',
-          margin: '5px',
+          backgroundColor: isEnabled ? "lightblue" : "white",
+          padding: "5px",
+          margin: "5px",
         }}
       >
-        {isEnabled ? 'Disable' : 'Enable'}
+        {isEnabled ? "Disable Filter" : "Enable Filter"}
       </button>
       {isEnabled && (
         <div>
           <div>
-            <button 
-              onClick={() => setMode('range')}
+            <button
+              onClick={() => switchMode("range")}
               style={{
-                backgroundColor: mode === 'range' ? 'lightblue' : 'white',
-                color: mode === 'range' ? 'black' : 'grey',
-                padding: '5px',
-                margin: '5px',
+                backgroundColor: mode === "range" ? "lightblue" : "white",
+                color: mode === "range" ? "black" : "grey",
+                padding: "5px",
+                margin: "5px",
               }}
             >
               Set Range
             </button>
-            <button 
-              onClick={() => setMode('exact')}
+            <button
+              onClick={() => switchMode("exact")}
               style={{
-                backgroundColor: mode === 'exact' ? 'lightblue' : 'white',
-                color: mode === 'exact' ? 'black' : 'grey',
-                padding: '5px',
-                margin: '5px',
+                backgroundColor: mode === "exact" ? "lightblue" : "white",
+                color: mode === "exact" ? "black" : "grey",
+                padding: "5px",
+                margin: "5px",
               }}
             >
               Set Exact Value
             </button>
           </div>
-          {mode === 'range' ? (
+          {mode === "range" ? (
             <div>
-               <input
+              <input
                 type="number"
                 placeholder={`${filterName}_gte`}
-                min={filterValues[0]}
-                max={filterValues[1]}
                 step="any"
                 onChange={(e) => handleInputChange(e, `${filterName}_gte`)}
-                style={{ marginRight: '5px' }}
+                style={{ marginRight: "5px" }}
               />
-                <input
+              <input
                 type="number"
                 placeholder={`${filterName}_lte`}
-                min={filterValues[0]}
-                max={filterValues[1]}
                 step="any"
                 onChange={(e) => handleInputChange(e, `${filterName}_lte`)}
-                style={{ marginRight: '5px' }}
+                style={{ marginRight: "5px" }}
               />
             </div>
           ) : (
@@ -155,16 +161,16 @@ function RangeOrExactFilter({ filterName, filterValues, updateSelectedFilters })
               <input
                 type="number"
                 placeholder={`${filterName}_eq`}
-                min={filterValues[0]}
-                max={filterValues[1]}
                 step="any"
                 onChange={(e) => handleInputChange(e, `${filterName}_eq`)}
-                style={{ marginRight: '5px' }}
+                style={{ marginRight: "5px" }}
               />
             </div>
           )}
           <div>
-            <label>Min, Max: ({filterValues[0]}, {filterValues[1]})</label>
+            <label>
+              Min, Max: ({filterValues[0]}, {filterValues[1]})
+            </label>
           </div>
         </div>
       )}
@@ -173,5 +179,3 @@ function RangeOrExactFilter({ filterName, filterValues, updateSelectedFilters })
 }
 
 export default RangeOrExactFilter;
-
-

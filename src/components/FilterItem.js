@@ -1,7 +1,12 @@
-import React from 'react';
+import React from "react";
 
-function FilterItem({ filterName, filterValues, selectedValues, updateSelectedFilters }) {
-    const isArray = Array.isArray(selectedValues);
+function FilterItem({
+  filterName,
+  filterValues,
+  selectedValues,
+  updateSelectedFilters,
+}) {
+  const isArray = Array.isArray(selectedValues);
 
   return (
     <div>
@@ -10,12 +15,16 @@ function FilterItem({ filterName, filterValues, selectedValues, updateSelectedFi
         {filterValues.map((value) => (
           <button
             key={value}
-            style={{ 
-              margin: '5px', 
-              padding: '10px', 
-              backgroundColor: (isArray && selectedValues.includes(value)) || selectedValues === value ? 'lightblue' : 'white' 
+            style={{
+              margin: "5px",
+              padding: "10px",
+              backgroundColor:
+                (isArray && selectedValues.includes(value)) ||
+                selectedValues === value
+                  ? "lightblue"
+                  : "white",
 
-            //   backgroundColor: selectedValues && selectedValues.includes(value) ? 'lightblue' : 'white' 
+              //   backgroundColor: selectedValues && selectedValues.includes(value) ? 'lightblue' : 'white'
             }}
             onClick={() => updateSelectedFilters(filterName, value)}
           >
