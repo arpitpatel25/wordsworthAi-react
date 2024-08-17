@@ -16,11 +16,16 @@ function App() {
     show_pages: null,
     show_collections: null,
     show_products: null,
-    aspect_ratio: [],
-    file_size: [],
+    aspect_ratio_gte: null,
+    aspect_ratio_lte: null,
+    aspect_ratio_eq: null,
+    file_size_gte: null,
+    file_size_lte: null,
+    file_size_eq: null,
     product_tag: [],
     collection_tag: []
   });
+  
 
   const fetchBrandFilters = async (url) => {
     try {
@@ -60,8 +65,17 @@ function App() {
   const updateSelectedFilters = (filterName, value) => {
     setSelectedFilters(prevFilters => {
       const updatedFilters = { ...prevFilters };
-
-      if (Array.isArray(updatedFilters[filterName])) {
+  
+      if (filterName.endsWith('_gte') || filterName.endsWith('_lte') || filterName.endsWith('_eq')) {
+        updatedFilters[filterName] = value;
+        // Clear other related fields if one is set
+        if (filterName.endsWith('_gte') || filterName.endsWith('_lte')) {
+          updatedFilters[filterName.replace('_gte', '_eq').replace('_lte', '_eq')] = null;
+        } else if (filterName.endsWith('_eq')) {
+          updatedFilters[filterName.replace('_eq', '_gte')] = null;
+          updatedFilters[filterName.replace('_eq', '_lte')] = null;
+        }
+      } else if (Array.isArray(updatedFilters[filterName])) {
         if (updatedFilters[filterName].includes(value)) {
           updatedFilters[filterName] = updatedFilters[filterName].filter(v => v !== value);
         } else {
@@ -70,14 +84,16 @@ function App() {
       } else {
         if (updatedFilters[filterName] === value) {
           updatedFilters[filterName] = null;
+
         } else {
           updatedFilters[filterName] = value;
         }
       }
-
+  
       return updatedFilters;
     });
   };
+  
 
   const applyFilters = async () => {
     try {
@@ -88,7 +104,7 @@ function App() {
         if (Array.isArray(value) && value.length > 0) {
           console.info("--->",value, value.length)
           value.forEach(val => queryParams.append(key, val));
-        } else if (!Array.isArray(value) &&value !== null && value !== undefined) {
+        } else if (!Array.isArray(value) &&value !== null && value !== undefined && value!= NaN) {
           queryParams.append(key, value);
           console.info("^^^",value)
         }
