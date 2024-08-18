@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import URLInput from "./components/URLInput";
 import Filters from "./components/Filters";
 import ApplyFiltersButton from "./components/ApplyFiltersButton";
-import { getBrandFilters, filterMedia } from "./api";
+import { getBrandFilters, filterMediaPaginated } from "./api";
+import MediaGrid from "./components/MediaGrid";  // Import the MediaGrid component
 
 function App() {
   const [brandUrl, setBrandUrl] = useState("");
@@ -13,9 +14,9 @@ function App() {
     has_product: null,
     has_human: null,
     has_multiple_products: null,
-    show_pages: null,
-    show_collections: null,
-    show_products: null,
+    show_pages: true,
+    show_collections: true,
+    show_products: true,
     aspect_ratio_gte: null,
     aspect_ratio_lte: null,
     aspect_ratio_eq: null,
@@ -25,6 +26,10 @@ function App() {
     product_tag: [],
     collection_tag: [],
   });
+  
+  const [mediaItems, setMediaItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchBrandFilters = async (url) => {
     try {
@@ -88,120 +93,19 @@ function App() {
           updatedFilters[filterName] = [...updatedFilters[filterName], value];
         }
       } else {
-        // if (filterName in ['show_pages','show_products','show_collections']) {
-        //   console.log("**********", filterName, value)
-        //   if (updatedFilters[filterName] !== value) {
-        //     updatedFilters[filterName] = value;
-        //   }
-        // }
-        // else {
-          if (updatedFilters[filterName] === value) {
-            updatedFilters[filterName] = null;
-          } else {
-            updatedFilters[filterName] = value;
-          }
-        // }
-        
+        if (updatedFilters[filterName] === value) {
+          updatedFilters[filterName] = null;
+        } else {
+          updatedFilters[filterName] = value;
+        }
       }
 
       return updatedFilters;
     });
   };
 
-  // const applyFilters = async () => {
-  //   try {
-  //     const queryParams = new URLSearchParams();
-
-  //     for (const [key, value] of Object.entries(selectedFilters)) {
-  //       console.info(value);
-  //       if (Array.isArray(value) && value.length > 0) {
-  //         console.info("--->",value, value.length)
-  //         value.forEach(val => queryParams.append(key, val));
-  //       } else if (!Array.isArray(value) &&value !== null && value !== undefined && !isNaN(value)) {
-  //         queryParams.append(key, value);
-  //         console.info("^^^",value)
-  //       }
-  //     }
-
-  //     const apiUrl = `http://127.0.0.1:5000/filter_media?${queryParams.toString()}`;
-  //     const filteredMedia = await filterMedia(apiUrl);
-
-  //     console.log(filteredMedia); // Use the filtered media as needed in your app
-  //   } catch (error) {
-  //     console.error('Error applying filters:', error);
-  //   }
-  // };
-
-  const applyFilters = async () => {
+  const fetchMediaItems = async (page) => {
     try {
-      // Perform validation for aspect_ratio and file_size
-
-      const aspectRatioFilter = availableFilters.find(
-        (f) => f.name === "aspect_ratio",
-      );
-
-      if (aspectRatioFilter) {
-        const a_ratio_min_val = aspectRatioFilter.values[0];
-        const a_ratio_max_val = aspectRatioFilter.values[1];
-
-        if (
-          selectedFilters.aspect_ratio_gte ||
-          selectedFilters.aspect_ratio_lte
-        ) {
-          if (
-            selectedFilters.aspect_ratio_gte >= a_ratio_min_val &&
-            selectedFilters.aspect_ratio_gte <= a_ratio_max_val &&
-            selectedFilters.aspect_ratio_lte >= a_ratio_min_val &&
-            selectedFilters.aspect_ratio_lte <= a_ratio_max_val
-          ) {
-            // Both values are within the allowed range
-          } else {
-            alert("Aspect ratio values must be within the allowed range.");
-            return;
-          }
-        }
-        if (selectedFilters.aspect_ratio_eq) {
-          if (
-            selectedFilters.aspect_ratio_eq >= a_ratio_min_val &&
-            selectedFilters.aspect_ratio_eq <= a_ratio_max_val
-          ) {
-            // Value is within the allowed range
-          } else {
-            alert("Aspect ratio value must be within the allowed range.");
-            return;
-          }
-        }
-      }
-      const fileSizeFilter = availableFilters.find(
-        (f) => f.name === "file_size",
-      );
-      if (fileSizeFilter) {
-        const fsize_min_val = fileSizeFilter.values[0];
-        const fsize_max_val = fileSizeFilter.values[1];
-
-        if (selectedFilters.file_size_gte || selectedFilters.file_size_lte) {
-          if (
-            (selectedFilters.file_size_gte &&
-              selectedFilters.file_size_gte < fsize_min_val) ||
-            (selectedFilters.file_size_lte &&
-              selectedFilters.file_size_lte > fsize_max_val)
-          ) {
-            alert("File size values must be within the allowed range.");
-            return;
-          }
-        }
-
-        if (selectedFilters.file_size_eq) {
-          if (
-            selectedFilters.file_size_eq < fsize_min_val ||
-            selectedFilters.file_size_eq > fsize_max_val
-          ) {
-            alert("File size value must be within the allowed range.");
-            return;
-          }
-        }
-      }
-
       const queryParams = new URLSearchParams();
 
       for (const [key, value] of Object.entries(selectedFilters)) {
@@ -216,12 +120,46 @@ function App() {
         }
       }
 
-      const apiUrl = `http://127.0.0.1:5000/filter_media?${queryParams.toString()}`;
-      const filteredMedia = await filterMedia(apiUrl);
+      const apiUrl = `http://127.0.0.1:5000/filter_media_page?${queryParams.toString()}`;
+      const filteredMedia = await filterMediaPaginated(apiUrl, page);
 
-      console.log(filteredMedia); // Use the filtered media as needed in your app
+      // Filter out duplicate media_urls
+      const uniqueMediaItems = filteredMedia.results.filter(
+        (item, index, self) =>
+          index === self.findIndex((t) => t.media_url === item.media_url)
+      );
+
+      setMediaItems(uniqueMediaItems);
+      setTotalPages(Math.ceil(filteredMedia.count / filteredMedia.per_page));
     } catch (error) {
-      console.error("Error applying filters:", error);
+      console.error("Error fetching media items:", error);
+      setMediaItems([]);
+    }
+  };
+
+  const applyFilters = () => {
+    // Reset the media items, page, and total pages
+    setMediaItems([]);
+    setPage(1);
+    setTotalPages(1);
+    
+    // Fetch media items starting from page 1
+    fetchMediaItems(1);
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) {
+      const newPage = page + 1;
+      setPage(newPage);
+      fetchMediaItems(newPage);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      const newPage = page - 1;
+      setPage(newPage);
+      fetchMediaItems(newPage);
     }
   };
 
@@ -234,6 +172,16 @@ function App() {
         updateSelectedFilters={updateSelectedFilters}
       />
       <ApplyFiltersButton applyFilters={applyFilters} />
+      <div>
+        <button onClick={handlePrevPage} disabled={page <= 1}>
+          Previous
+        </button>
+        <span>Page {page} of {totalPages}</span>
+        <button onClick={handleNextPage} disabled={page >= totalPages}>
+          Next
+        </button>
+      </div>
+      <MediaGrid mediaItems={mediaItems} />
     </div>
   );
 }

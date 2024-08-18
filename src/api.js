@@ -17,3 +17,12 @@ export const filterMedia = async (apiUrl) => {
   }
   return response.json(); // Returns the filtered media
 };
+
+export const filterMediaPaginated = async (apiUrl, page = 1, perPage = 20) => {
+    const response = await fetch(`${apiUrl}&page=${page}&per_page=${perPage}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch paginated filtered media");
+    }
+    return response.json(); // Returns the paginated filtered media
+  };
+  

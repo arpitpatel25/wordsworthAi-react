@@ -1,0 +1,14 @@
+.media-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+  
+  .media-item {
+    max-width: 100%;
+    height: auto;
+    width: 200px; /* Scale down size */
+    object-fit: cover;
+  }
+  
