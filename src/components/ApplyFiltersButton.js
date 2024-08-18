@@ -1,12 +1,13 @@
 import React from "react";
+import { Box, Button } from "@chakra-ui/react";
 
 function ApplyFiltersButton({ applyFilters }) {
   return (
-    <div style={{ textAlign: "center", padding: "20px" }}>
-      <button onClick={applyFilters} style={{ padding: "10px 20px" }}>
+    <Box textAlign="center" padding="20px">
+      <Button onClick={applyFilters} padding="10px 20px" colorScheme="blue">
         Apply Filters
-      </button>
-    </div>
+      </Button>
+    </Box>
   );
 }
 

@@ -1,7 +1,12 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { Box, Input, Button } from "@chakra-ui/react";
 
-function URLInput({ fetchBrandFilters }) {
-  const [url, setUrl] = useState("");
+function URLInput({ fetchBrandFilters, brandUrl }) {
+  const [url, setUrl] = useState(brandUrl || ""); // Initialize with brandUrl if not empty
+
+  useEffect(() => {
+    setUrl(brandUrl || ""); // Set input value to brandUrl when available
+  }, [brandUrl]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -9,23 +14,20 @@ function URLInput({ fetchBrandFilters }) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{ textAlign: "center", padding: "20px" }}
-    >
-      <input
-        type="text"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        placeholder="Enter brand URL"
-        style={{ width: "60%", padding: "10px" }}
-      />
-      <button
-        type="submit"
-        style={{ marginLeft: "10px", padding: "10px 20px" }}
-      >
-        Fetch Filters
-      </button>
+    <form onSubmit={handleSubmit}>
+      <Box textAlign="center" padding="20px">
+        <Input
+          type="text"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="Enter brand URL"
+          width="60%"
+          marginRight="10px"
+        />
+        <Button type="submit" colorScheme="blue">
+          Fetch Filters
+        </Button>
+      </Box>
     </form>
   );
 }

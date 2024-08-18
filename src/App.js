@@ -1,56 +1,136 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { ChakraProvider, Flex, Box, Button, Text } from "@chakra-ui/react";
 import URLInput from "./components/URLInput";
 import Filters from "./components/Filters";
 import ApplyFiltersButton from "./components/ApplyFiltersButton";
+import MediaGrid from "./components/MediaGrid"; 
 import { getBrandFilters, filterMediaPaginated } from "./api";
-import MediaGrid from "./components/MediaGrid";  // Import the MediaGrid component
+
+const EXPIRY_TIME = 5 * 60 * 1000; // 10 minutes in milliseconds
 
 function App() {
-  const [brandUrl, setBrandUrl] = useState("");
-  const [availableFilters, setAvailableFilters] = useState([]);
-  const [selectedFilters, setSelectedFilters] = useState({
-    brand_url: brandUrl,
-    media_type: null,
-    has_product: null,
-    has_human: null,
-    has_multiple_products: null,
-    show_pages: true,
-    show_collections: true,
-    show_products: true,
-    aspect_ratio_gte: null,
-    aspect_ratio_lte: null,
-    aspect_ratio_eq: null,
-    file_size_gte: null,
-    file_size_lte: null,
-    file_size_eq: null,
-    product_tag: [],
-    collection_tag: [],
+  const [brandUrl, setBrandUrl] = useState(() => localStorage.getItem('brandUrl') || "");
+  const [availableFilters, setAvailableFilters] = useState(() => JSON.parse(localStorage.getItem('availableFilters')) || []);
+  
+  const [selectedFilters, setSelectedFilters] = useState(() => {
+    const savedFilters = localStorage.getItem('selectedFilters');
+    return savedFilters ? JSON.parse(savedFilters) : {
+      brand_url: brandUrl,
+      media_type: null,
+      has_product: null,
+      has_human: null,
+      has_multiple_products: null,
+      show_pages: true,
+      show_collections: true,
+      show_products: true,
+      aspect_ratio_gte: null,
+      aspect_ratio_lte: null,
+      aspect_ratio_eq: null,
+      file_size_gte: null,
+      file_size_lte: null,
+      file_size_eq: null,
+      product_tag: [],
+      collection_tag: [],
+    };
   });
   
   const [mediaItems, setMediaItems] = useState([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
+  useEffect(() => {
+    const storedTimestamp = localStorage.getItem('timestamp');
+    const currentTime = new Date().getTime();
+
+    if (storedTimestamp && currentTime - storedTimestamp < EXPIRY_TIME) {
+      setBrandUrl(localStorage.getItem('brandUrl') || "");
+      setAvailableFilters(JSON.parse(localStorage.getItem('availableFilters')) || []);
+      setSelectedFilters(JSON.parse(localStorage.getItem('selectedFilters')) || null);
+    } else {
+      localStorage.clear(); // Clear data if more than 10 minutes have passed
+    }
+  }, []);
+
+  useEffect(() => {
+    if (brandUrl) {
+      localStorage.setItem('brandUrl', brandUrl);
+      localStorage.setItem('timestamp', new Date().getTime());
+    }
+  }, [brandUrl]);
+
+  useEffect(() => {
+    if (availableFilters.length > 0) {
+      localStorage.setItem('availableFilters', JSON.stringify(availableFilters));
+      localStorage.setItem('timestamp', new Date().getTime());
+    }
+  }, [availableFilters]);
+
+  useEffect(() => {
+    if (selectedFilters) {
+      localStorage.setItem('selectedFilters', JSON.stringify(selectedFilters));
+      localStorage.setItem('timestamp', new Date().getTime());
+    }
+  }, [selectedFilters]);
+
+  useEffect(() => {
+    if (brandUrl && availableFilters.length > 0 && selectedFilters) {
+      applyFilters(); // Run only if all required data is available on load/reload
+    }
+  }, [brandUrl, availableFilters]);
+
   const fetchBrandFilters = async (url) => {
     try {
+      // Clear previous data when fetching new filters
+      localStorage.clear();
+      setMediaItems([]);
+      setPage(1);
+      setTotalPages(1);
+      setSelectedFilters({
+        brand_url: url,
+        media_type: null,
+        has_product: null,
+        has_human: null,
+        has_multiple_products: null,
+        show_pages: true,
+        show_collections: true,
+        show_products: true,
+        aspect_ratio_gte: null,
+        aspect_ratio_lte: null,
+        aspect_ratio_eq: null,
+        file_size_gte: null,
+        file_size_lte: null,
+        file_size_eq: null,
+        product_tag: [],
+        collection_tag: [],
+      });
+
       const response = await getBrandFilters(url);
-      const fixedFilters = [
-        { name: "media_type", values: ["image", "video"] },
-        { name: "has_product", values: [true, false] },
-        { name: "has_human", values: [true, false] },
-        { name: "has_multiple_products", values: [true, false] },
-        { name: "show_pages", values: [true, false] },
-        { name: "show_products", values: [true, false] },
-        { name: "show_collections", values: [true, false] },
-      ];
 
       const apiFilters = [
-        { name: "aspect_ratio", values: response.aspect_ratio || [] },
-        { name: "file_size", values: response.file_size || [] },
-        { name: "product_tag", values: response.product_tag || [] },
-        { name: "collection_tag", values: response.collection_tag || [] },
+        {
+          name: "product_tag",
+          values: (response.product_tag || []).filter(tag => tag.trim() !== ""),
+          title: "Product Tags"
+        },
+        {
+          name: "collection_tag",
+          values: (response.collection_tag || []).filter(tag => tag.trim() !== ""),
+          title: "Collection Tags"
+        },
+
+        { name: "show_pages", values: [true, false], title: "Show from Pages" },
+        { name: "show_products", values: [true, false], title: "Show from Products" },
+        { name: "show_collections", values: [true, false], title: "Show from Collections" },
+        { name: "has_product", values: [true, false], title: "Has Product" },
+        { name: "has_human", values: [true, false],title: "Has Human" },
+        { name: "has_multiple_products", values: [true, false], title: "Has Multiple Products" },
+        { name: "aspect_ratio", values: response.aspect_ratio || [], title: "Aspect Ratio" },
+        { name: "media_type", values: ["image", "video"], title: "Media Type" },
+        
       ];
-      setAvailableFilters([...fixedFilters, ...apiFilters]);
+      // setAvailableFilters([...fixedFilters, ...apiFilters]);
+      setAvailableFilters([...apiFilters]);
+
       updateBrandBaseUrl(url); // Update selectedFilters with brand URL
     } catch (error) {
       console.error("Error fetching brand filters:", error);
@@ -58,11 +138,11 @@ function App() {
   };
 
   const updateBrandBaseUrl = (brandUrl) => {
-    setSelectedFilters((prevFilters) => {
-      const updatedFilters = { ...prevFilters };
-      updatedFilters["brand_url"] = brandUrl;
-      return updatedFilters;
-    });
+    setBrandUrl(brandUrl);
+    setSelectedFilters((prevFilters) => ({
+      ...prevFilters,
+      brand_url: brandUrl
+    }));
   };
 
   const updateSelectedFilters = (filterName, value) => {
@@ -75,7 +155,6 @@ function App() {
         filterName.endsWith("_eq")
       ) {
         updatedFilters[filterName] = value;
-        // Clear other related fields if one is set
         if (filterName.endsWith("_gte") || filterName.endsWith("_lte")) {
           updatedFilters[
             filterName.replace("_gte", "_eq").replace("_lte", "_eq")
@@ -104,46 +183,160 @@ function App() {
     });
   };
 
+  // const fetchMediaItems = async (page) => {
+  //   try {
+  //     const aspectRatioFilter = availableFilters.find(
+  //       (f) => f.name === "aspect_ratio",
+  //     );
+
+  //     if (aspectRatioFilter) {
+  //       const a_ratio_min_val = aspectRatioFilter.values[0];
+  //       const a_ratio_max_val = aspectRatioFilter.values[1];
+
+  //       if (
+  //         selectedFilters.aspect_ratio_gte ||
+  //         selectedFilters.aspect_ratio_lte
+  //       ) {
+  //         if (
+  //           selectedFilters.aspect_ratio_gte >= a_ratio_min_val &&
+  //           selectedFilters.aspect_ratio_gte <= a_ratio_max_val &&
+  //           selectedFilters.aspect_ratio_lte >= a_ratio_min_val &&
+  //           selectedFilters.aspect_ratio_lte <= a_ratio_max_val
+  //         ) {
+  //           // Both values are within the allowed range
+  //         } else {
+  //           alert("Aspect ratio values must be within the allowed range.");
+  //           return;
+  //         }
+  //       }
+  //       if (selectedFilters.aspect_ratio_eq) {
+  //         if (
+  //           selectedFilters.aspect_ratio_eq >= a_ratio_min_val &&
+  //           selectedFilters.aspect_ratio_eq <= a_ratio_max_val
+  //         ) {
+  //           // Value is within the allowed range
+  //         } else {
+  //           alert("Aspect ratio value must be within the allowed range.");
+  //           return;
+  //         }
+  //       }
+  //     }
+  //     const queryParams = new URLSearchParams();
+
+  //     for (const [key, value] of Object.entries(selectedFilters)) {
+  //       if (Array.isArray(value) && value.length > 0) {
+  //         value.forEach((val) => queryParams.append(key, val));
+  //       } else if (
+  //         !Array.isArray(value) &&
+  //         value !== null &&
+  //         value !== undefined
+  //       ) {
+  //         queryParams.append(key, value);
+  //       }
+  //     }
+
+  //     const apiUrl = `http://127.0.0.1:5000/filter_media_page?${queryParams.toString()}`;
+  //     const filteredMedia = await filterMediaPaginated(apiUrl, page);
+
+  //     const uniqueMediaItems = filteredMedia.results.filter(
+  //       (item, index, self) =>
+  //         index === self.findIndex((t) => t.media_url === item.media_url)
+  //     );
+
+  //     setMediaItems(uniqueMediaItems);
+  //     setTotalPages(Math.ceil(filteredMedia.count / filteredMedia.per_page));
+  //   } catch (error) {
+  //     console.error("Error fetching media items:", error);
+  //     setMediaItems([]);
+  //   }
+  // };
+
   const fetchMediaItems = async (page) => {
     try {
+      const aspectRatioFilter = availableFilters.find(
+        (f) => f.name === "aspect_ratio"
+      );
+  
+      if (aspectRatioFilter) {
+        const a_ratio_min_val = aspectRatioFilter.values[0];
+        const a_ratio_max_val = aspectRatioFilter.values[1];
+  
+        if (
+          (selectedFilters.aspect_ratio_gte !== null &&
+           selectedFilters.aspect_ratio_gte !== undefined &&
+           (selectedFilters.aspect_ratio_gte < a_ratio_min_val ||
+            selectedFilters.aspect_ratio_gte > a_ratio_max_val)) ||
+          (selectedFilters.aspect_ratio_lte !== null &&
+           selectedFilters.aspect_ratio_lte !== undefined &&
+           (selectedFilters.aspect_ratio_lte < a_ratio_min_val ||
+            selectedFilters.aspect_ratio_lte > a_ratio_max_val))
+        ) {
+          alert("Aspect ratio values must be within the allowed range.");
+          return;
+        }
+  
+        if (
+          selectedFilters.aspect_ratio_eq !== null &&
+          selectedFilters.aspect_ratio_eq !== undefined &&
+          (selectedFilters.aspect_ratio_eq < a_ratio_min_val ||
+           selectedFilters.aspect_ratio_eq > a_ratio_max_val)
+        ) {
+          alert("Aspect ratio value must be within the allowed range.");
+          return;
+        }
+  
+        // Check that aspect_ratio_gte < aspect_ratio_lte
+        if (
+          selectedFilters.aspect_ratio_gte !== null &&
+          selectedFilters.aspect_ratio_gte !== undefined &&
+          selectedFilters.aspect_ratio_lte !== null &&
+          selectedFilters.aspect_ratio_lte !== undefined &&
+          selectedFilters.aspect_ratio_gte >= selectedFilters.aspect_ratio_lte
+        ) {
+          alert("Min value must be less than max value."          );
+          return;
+        }
+      }
+  
+      // The rest of the fetchMediaItems code
       const queryParams = new URLSearchParams();
-
+  
       for (const [key, value] of Object.entries(selectedFilters)) {
         if (Array.isArray(value) && value.length > 0) {
           value.forEach((val) => queryParams.append(key, val));
-        } else if (
-          !Array.isArray(value) &&
-          value !== null &&
-          value !== undefined
-        ) {
+        } else if (!Array.isArray(value) && value !== null && value !== undefined) {
           queryParams.append(key, value);
         }
       }
-
+  
       const apiUrl = `http://127.0.0.1:5000/filter_media_page?${queryParams.toString()}`;
       const filteredMedia = await filterMediaPaginated(apiUrl, page);
-
-      // Filter out duplicate media_urls
+  
       const uniqueMediaItems = filteredMedia.results.filter(
         (item, index, self) =>
           index === self.findIndex((t) => t.media_url === item.media_url)
       );
-
+  
+      if (uniqueMediaItems.length === 0) {
+        alert("No Media found for these filters.");
+      }
+      
       setMediaItems(uniqueMediaItems);
       setTotalPages(Math.ceil(filteredMedia.count / filteredMedia.per_page));
     } catch (error) {
       console.error("Error fetching media items:", error);
+      alert("Error fetching media items:", error);
       setMediaItems([]);
     }
   };
+  
 
+  
   const applyFilters = () => {
-    // Reset the media items, page, and total pages
     setMediaItems([]);
     setPage(1);
     setTotalPages(1);
-    
-    // Fetch media items starting from page 1
+
     fetchMediaItems(1);
   };
 
@@ -163,27 +356,98 @@ function App() {
     }
   };
 
+  // return (
+  //   <ChakraProvider>
+  //     <Flex direction="column" height="100vh">
+  //       <Box bg="gray.100" p={4}>
+  //         <URLInput fetchBrandFilters={fetchBrandFilters} brandUrl={brandUrl} />
+  //       </Box>
+
+  //       <Flex flex="1">
+  //         <Box width="300px" p={4} bg="gray.50" borderRight="1px solid #ccc">
+  //           <Filters
+  //             availableFilters={availableFilters}
+  //             selectedFilters={selectedFilters}
+  //             updateSelectedFilters={updateSelectedFilters}
+  //             applyFilters={applyFilters} // Pass the applyFilters function here
+
+  //           />
+  //           <Box mt={4}>
+  //             <ApplyFiltersButton applyFilters={applyFilters} />
+  //           </Box>
+  //         </Box>
+
+  //         <Box flex="1" p={4}>
+  //           <MediaGrid mediaItems={mediaItems} />
+  //           <Flex justify="center" mt={4}>
+  //             <Button onClick={handlePrevPage} mr={2} disabled={page <= 1}>
+  //               Previous
+  //             </Button>
+  //             <Text>Page {page} of {totalPages}</Text>
+  //             <Button onClick={handleNextPage} ml={2} disabled={page >= totalPages}>
+  //               Next
+  //             </Button>
+  //           </Flex>
+  //         </Box>
+  //       </Flex>
+  //     </Flex>
+  //   </ChakraProvider>
+  // );
   return (
-    <div>
-      <URLInput fetchBrandFilters={fetchBrandFilters} />
-      <Filters
-        availableFilters={availableFilters}
-        selectedFilters={selectedFilters}
-        updateSelectedFilters={updateSelectedFilters}
-      />
-      <ApplyFiltersButton applyFilters={applyFilters} />
-      <div>
-        <button onClick={handlePrevPage} disabled={page <= 1}>
-          Previous
-        </button>
-        <span>Page {page} of {totalPages}</span>
-        <button onClick={handleNextPage} disabled={page >= totalPages}>
-          Next
-        </button>
-      </div>
-      <MediaGrid mediaItems={mediaItems} />
-    </div>
+    <ChakraProvider>
+      <Flex direction="column" height="100vh">
+        <Box bg="gray.100" p={4}>
+          <URLInput fetchBrandFilters={fetchBrandFilters} brandUrl={brandUrl} />
+        </Box>
+  
+        <Flex flex="1">
+          <Box width="300px" p={4} bg="gray.50" borderRight="1px solid #ccc">
+            <Filters
+              availableFilters={availableFilters}
+              selectedFilters={selectedFilters}
+              updateSelectedFilters={updateSelectedFilters}
+              applyFilters={applyFilters}
+            />
+            <Box mt={4}>
+              <ApplyFiltersButton applyFilters={applyFilters} />
+            </Box>
+          </Box>
+  
+          <Box flex="1" p={4}>
+            <Flex justify="flex-end" align="center" mb={4}>
+              <Flex alignItems="center">
+                <Button onClick={handlePrevPage} mr={2} disabled={page <= 1}>
+                  Previous
+                </Button>
+                <Text mr={2}>
+                  Page {page} of {totalPages}
+                </Text>
+                <Button onClick={handleNextPage} disabled={page >= totalPages}>
+                  Next
+                </Button>
+              </Flex>
+            </Flex>
+  
+            <MediaGrid mediaItems={mediaItems} initialLoad={mediaItems.length === 0 && page === 1} />
+  
+            <Flex justify="flex-end" align="center" mt={4}>
+              <Flex alignItems="center">
+                <Button onClick={handlePrevPage} mr={2} disabled={page <= 1}>
+                  Previous
+                </Button>
+                <Text mr={2}>
+                  Page {page} of {totalPages}
+                </Text>
+                <Button onClick={handleNextPage} disabled={page >= totalPages}>
+                  Next
+                </Button>
+              </Flex>
+            </Flex>
+          </Box>
+        </Flex>
+      </Flex>
+    </ChakraProvider>
   );
-}
+  }  
 
 export default App;

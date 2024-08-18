@@ -1,9 +1,9 @@
-
-
 import React, { useState } from "react";
+import { Button, Box, Input, Text } from "@chakra-ui/react";
 
 function RangeOrExactFilter({
   filterName,
+  filterTitle,
   filterValues,
   updateSelectedFilters,
 }) {
@@ -18,7 +18,6 @@ function RangeOrExactFilter({
   const toggleEnable = () => {
     setIsEnabled(!isEnabled);
     if (!isEnabled) {
-      // Clear all related filter values when disabling
       updateSelectedFilters(`${filterName}_gte`, null);
       updateSelectedFilters(`${filterName}_lte`, null);
       updateSelectedFilters(`${filterName}_eq`, null);
@@ -27,7 +26,6 @@ function RangeOrExactFilter({
 
   const switchMode = (newMode) => {
     setMode(newMode);
-    // Clear values of the other mode when switching
     if (newMode === "range") {
       updateSelectedFilters(`${filterName}_eq`, null);
     } else {
@@ -37,80 +35,65 @@ function RangeOrExactFilter({
   };
 
   return (
-    <div>
-      <h3>{filterName.replace(/_/g, " ").toUpperCase()}</h3>
-      <button
+    <Box mb={4}>
+      <Text fontWeight="bold">{filterTitle}</Text>
+      <Button
         onClick={toggleEnable}
-        style={{
-          backgroundColor: isEnabled ? "lightblue" : "white",
-          padding: "5px",
-          margin: "5px",
-        }}
+        bg={isEnabled ? "blue.500" : "gray.200"}
+        // color="white"
+        mb={2}
       >
         {isEnabled ? "Disable Filter" : "Enable Filter"}
-      </button>
+      </Button>
       {isEnabled && (
-        <div>
-          <div>
-            <button
+        <Box>
+          <Box>
+            <Button
               onClick={() => switchMode("range")}
-              style={{
-                backgroundColor: mode === "range" ? "lightblue" : "white",
-                color: mode === "range" ? "black" : "grey",
-                padding: "5px",
-                margin: "5px",
-              }}
+              bg={mode === "range" ? "blue.500" : "gray.200"}
+            //   color="white"
+              mr={2}
             >
               Set Range
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => switchMode("exact")}
-              style={{
-                backgroundColor: mode === "exact" ? "lightblue" : "white",
-                color: mode === "exact" ? "black" : "grey",
-                padding: "5px",
-                margin: "5px",
-              }}
+              bg={mode === "exact" ? "blue.500" : "gray.200"}
+            //   color="white"
             >
               Set Exact Value
-            </button>
-          </div>
+            </Button>
+          </Box>
           {mode === "range" ? (
-            <div>
-              <input
+            <Box mt={2}>
+              <Input
                 type="number"
-                placeholder={`${filterName}_gte`}
-                step="any"
+                placeholder={'Greater than'}
                 onChange={(e) => handleInputChange(e, `${filterName}_gte`)}
-                style={{ marginRight: "5px" }}
+
+
+                mr={2}
               />
-              <input
+              <Input
                 type="number"
-                placeholder={`${filterName}_lte`}
-                step="any"
+                placeholder={'Less than'}
                 onChange={(e) => handleInputChange(e, `${filterName}_lte`)}
-                style={{ marginRight: "5px" }}
+
               />
-            </div>
+            </Box>
           ) : (
-            <div>
-              <input
+            <Box mt={2}>
+              <Input
                 type="number"
-                placeholder={`${filterName}_eq`}
-                step="any"
+                placeholder={'Equal to'}
                 onChange={(e) => handleInputChange(e, `${filterName}_eq`)}
-                style={{ marginRight: "5px" }}
               />
-            </div>
+            </Box>
           )}
-          <div>
-            <label>
-              Min, Max: ({filterValues[0]}, {filterValues[1]})
-            </label>
-          </div>
-        </div>
+          <Text mt={2}>Min, Max: ({filterValues[0]}, {filterValues[1]})</Text>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 }
 

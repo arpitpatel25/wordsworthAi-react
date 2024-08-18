@@ -1,38 +1,32 @@
 import React from "react";
+import { Button, Box, Text } from "@chakra-ui/react";
 
 function FilterItem({
   filterName,
+  filterTitle,
   filterValues,
   selectedValues,
   updateSelectedFilters,
 }) {
   const isArray = Array.isArray(selectedValues);
-
+  console.log("Name::: ",filterTitle)
   return (
-    <div>
-      <h3>{filterName}</h3>
-      <div>
+    <Box mb={4}>
+      <Text fontWeight="bold">{filterTitle}</Text>
+      <Box>
         {filterValues.map((value) => (
-          <button
+          <Button
             key={value}
-            style={{
-              margin: "5px",
-              padding: "10px",
-              backgroundColor:
-                (isArray && selectedValues.includes(value)) ||
-                selectedValues === value
-                  ? "lightblue"
-                  : "white",
-
-              //   backgroundColor: selectedValues && selectedValues.includes(value) ? 'lightblue' : 'white'
-            }}
             onClick={() => updateSelectedFilters(filterName, value)}
+            bg={(isArray && selectedValues.includes(value)) || selectedValues === value ? "blue.500" : "gray.200"}
+            color={(isArray && selectedValues.includes(value)) || selectedValues === value ? "white" : "black"}
+            m={1}
           >
             {value.toString()}
-          </button>
+          </Button>
         ))}
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
 
